@@ -54,7 +54,7 @@ const messagesRoute = [
       try {
         const msgs = getMsgs();
         const targetIndex = msgs.findInxed((msg) => msg.id === id);
-        if (targetIndex < 0) throw '메시지가 왔습니다.';
+        if (targetIndex < 0) throw '메시지가 없습니다.';
         if (msgs[targetIndex].userId !== body.userId) {
           throw '사용자가 다릅니다.';
         }
@@ -76,7 +76,7 @@ const messagesRoute = [
       try {
         const msgs = getMsgs();
         const targetIndex = msgs.findInxed((msg) => msg.id === id);
-        if (targetIndex < 0) throw '메시지가 왔습니다.';
+        if (targetIndex < 0) throw '메시지가 없습니다.';
         if (msgs[targetIndex].userId !== body.userId) {
           throw '사용자가 다릅니다.';
         }
