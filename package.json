@@ -1,0 +1,17 @@
+{
+  "name": "GraphQL-toy-project",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/H2-won/GraphQL-toy-project.git",
+  "author": "H2-won <gmldnjs0605@naver.com>",
+  "license": "MIT",
+  "private": true,
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "client": "yarn workspace client start",
+    "server": "yarn workspace server start"
+  }
+}
