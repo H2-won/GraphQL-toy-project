@@ -5,13 +5,11 @@ import MsgInput from './MsgInput';
 import fetcher from '../fetcher';
 import useInfiniteScroll from '../hooks/useInfiniteScroll';
 
-const UserIds = ['roy', 'jay'];
-
-const MsgList = () => {
+const MsgList = ({ smsgs, users }) => {
   const { query } = useRouter();
   // window에서 query string을 소문자로 바꾸는 case issue 대응
   const userId = query.userId || query.userid || '';
-  const [msgs, setMsgs] = useState([]);
+  const [msgs, setMsgs] = useState(smsgs);
   const [editingId, setEditingId] = useState(null);
   // 최하단에서 더 불러올 정보가 없다면 불필요한 fetch 요청을 안하기 위해 hasNext를 통해 관리
   const [hasNext, setHasNext] = useState(true);
@@ -80,6 +78,7 @@ const MsgList = () => {
             startEdit={() => setEditingId(x.id)}
             isEditing={editingId === x.id}
             myId={userId}
+            user={users[x.userId]}
           />
         ))}
       </ul>
