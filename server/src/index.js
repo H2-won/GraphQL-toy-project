@@ -1,24 +1,32 @@
 import express from 'express';
-import cors from 'cors';
-import messagesRoute from './routes/messages.js';
-import usersRoute from './routes/users.js';
+import { ApolloServer } from 'apollo-server-express';
+import resolvers from './resolvers/index.js';
+import schema from './schema/index.js';
+import { readDB } from './dbController.js';
+
+const server = new ApolloServer({
+  typeDefs: schema,
+  resolvers,
+  context: {
+    db: {
+      messages: readDB('messages'),
+      users: readDB('users'),
+    },
+  },
+  introspection: true,
+  playground: true,
+});
 
 const app = express();
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
-
-app.use(
-  cors({
-    origin: 'http://localhost:3000',
+await server.start();
+server.applyMiddleware({
+  app,
+  path: '/graphql',
+  cors: {
+    origin: ['http://localhost:3000', 'https://studio.apollographql.com'], // playground 설정을 위해 cross origin 추가
     credentials: true,
-  })
-);
-
-const routes = [...messagesRoute, ...usersRoute];
-routes.forEach(({ method, route, handler }) => {
-  app[method](route, handler);
+  },
 });
 
-app.listen(8000, () => {
-  console.log('server listening on 8000.....');
-});
+await app.listen({ port: 8000 });
+console.log('server listening on 8000 ...');
