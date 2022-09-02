@@ -2,68 +2,73 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import MsgItem from './MsgItem';
 import MsgInput from './MsgInput';
-import fetcher from '../fetcher';
-import useInfiniteScroll from '../hooks/useInfiniteScroll';
+import { fetcher, QueryKeys } from '../queryClient';
+import { useMutation, useQuery, useQueryClient } from 'react-query';
+import { CREATE_MESSAGE, DELETE_MESSAGE, GET_MESSAGES, UPDATE_MESSAGE } from '../graphql/messages';
+// import useInfiniteScroll from '../hooks/useInfiniteScroll';
 
 const MsgList = ({ smsgs, users }) => {
+  const client = useQueryClient();
   const { query } = useRouter();
   // window에서 query string을 소문자로 바꾸는 case issue 대응
   const userId = query.userId || query.userid || '';
   const [msgs, setMsgs] = useState(smsgs);
   const [editingId, setEditingId] = useState(null);
   // 최하단에서 더 불러올 정보가 없다면 불필요한 fetch 요청을 안하기 위해 hasNext를 통해 관리
-  const [hasNext, setHasNext] = useState(true);
-  const fetchMoreEl = useRef(null);
-  const intersecting = useInfiniteScroll(fetchMoreEl);
+  // const [hasNext, setHasNext] = useState(true);
+  // const fetchMoreEl = useRef(null);
+  // const intersecting = useInfiniteScroll(fetchMoreEl);
 
-  const onCreate = async (text) => {
-    const newMsg = await fetcher('post', '/messages', { text, userId });
-    if (!newMsg) throw Error('something wrong');
-    setMsgs((msgs) => [newMsg, ...msgs]);
-  };
+  const { mutate: onCreate } = useMutation(({ text }) => fetcher(CREATE_MESSAGE, { text, userId }), {
+    onSuccess: ({ createMessage }) => {
+      client.setQueryData(QueryKeys.MESSAGES, (old) => {
+        return {
+          messages: [createMessage, ...old.messages],
+        };
+      });
+    },
+  });
 
-  const onUpdate = async (text, id) => {
-    const newMsg = await fetcher('put', `/messages/${id}`, { text, userId });
-    if (!newMsg) throw Error('something wrong');
-    setMsgs((msgs) => {
-      const targetIndex = msgs.findIndex((msg) => msg.id === id);
-      if (targetIndex < 0) return msgs;
-      const newMsgs = [...msgs];
-      newMsgs.splice(targetIndex, 1, newMsg);
-      return newMsgs;
-    });
-    doneEdit();
-  };
+  const { mutate: onUpdate } = useMutation(({ text, id }) => fetcher(UPDATE_MESSAGE, { text, id, userId }), {
+    onSuccess: ({ updateMessage }) => {
+      client.setQueryData(QueryKeys.MESSAGES, (old) => {
+        const targetIndex = old.messages.findIndex((msg) => msg.id === updateMessage.id);
+        if (targetIndex < 0) return old;
+        const newMsgs = [...old.messages];
+        newMsgs.splice(targetIndex, 1, updateMessage);
+        return { messages: newMsgs };
+      });
+      doneEdit();
+    },
+  });
 
-  const onDelete = async (id) => {
-    // client에서 params로 넘기는 값은 server에서 query로 받는 queryString과 같다.
-    const receivedId = await fetcher('delete', `/messages/${id}`, { params: { userId } });
-    setMsgs((msgs) => {
-      // mockData로 생성한 "1" 같은 id 값은 파싱하면서 number로 자동 형변환이 되기 때문에 문자열로 변환해줘야 문제가 없다.
-      const targetIndex = msgs.findIndex((msg) => msg.id === receivedId + '');
-      if (targetIndex < 0) return msgs;
-      const newMsgs = [...msgs];
-      newMsgs.splice(targetIndex, 1);
-      return newMsgs;
-    });
-  };
+  const { mutate: onDelete } = useMutation((id) => fetcher(DELETE_MESSAGE, { id, userId }), {
+    onSuccess: ({ deleteMessage: deletedId }) => {
+      client.setQueryData(QueryKeys.MESSAGES, (old) => {
+        const targetIndex = old.messages.findIndex((msg) => msg.id === deletedId);
+        if (targetIndex < 0) return old;
+        const newMsgs = [...old.messages];
+        newMsgs.splice(targetIndex, 1);
+        return { messages: newMsgs };
+      });
+      doneEdit();
+    },
+  });
 
   const doneEdit = () => setEditingId(null);
 
-  const getMessages = async () => {
-    const newMsgs = await fetcher('get', '/messages', { params: { cursor: msgs[msgs.length - 1]?.id || '' } });
-    if (newMsgs.length === 0) {
-      setHasNext(false);
-      return;
-    }
-    setMsgs((msgs) => [...msgs, ...newMsgs]);
-  };
+  const { data, error, isError } = useQuery(QueryKeys.MESSAGES, () => fetcher(GET_MESSAGES));
 
   useEffect(() => {
-    if (intersecting && hasNext) {
-      getMessages();
-    }
-  }, [intersecting]);
+    if (!data?.messages) return;
+    console.log('msgs changed');
+    setMsgs(data?.messages || []);
+  }, [data?.messages]);
+
+  if (isError) {
+    console.error(error);
+    return null;
+  }
 
   return (
     <>
@@ -78,11 +83,11 @@ const MsgList = ({ smsgs, users }) => {
             startEdit={() => setEditingId(x.id)}
             isEditing={editingId === x.id}
             myId={userId}
-            user={users[x.userId]}
+            users={users}
           />
         ))}
       </ul>
-      <div ref={fetchMoreEl} />
+      {/* <div ref={fetchMoreEl} /> */}
     </>
   );
 };
