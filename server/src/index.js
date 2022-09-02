@@ -13,8 +13,6 @@ const server = new ApolloServer({
       users: readDB('users'),
     },
   },
-  introspection: true,
-  playground: true,
 });
 
 const app = express();
