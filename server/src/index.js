@@ -2,16 +2,18 @@ import express from 'express';
 import { ApolloServer } from 'apollo-server-express';
 import resolvers from './resolvers/index.js';
 import schema from './schema/index.js';
-import { readDB } from './dbController.js';
+import db from './dbController.js';
+
+const readDB = () => {
+  db.read();
+  return db.data;
+};
 
 const server = new ApolloServer({
   typeDefs: schema,
   resolvers,
   context: {
-    db: {
-      messages: readDB('messages'),
-      users: readDB('users'),
-    },
+    models: readDB(),
   },
 });
 
