@@ -5,6 +5,7 @@ const messageSchema = gql`
     id: ID! # ! 표시는 필수값이라는 뜻이다.
     text: String!
     userId: ID!
+    user: User!
     timestamp: Float #13자리 숫자
   }
 
