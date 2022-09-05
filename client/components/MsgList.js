@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import MsgItem from './MsgItem';
 import MsgInput from './MsgInput';
 import { fetcher, findTargetMsgIndex, getNewMessages, QueryKeys } from '../queryClient';
-import { useMutation, useInfiniteQuery, useQueryClient } from 'react-query';
+import { useMutation, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { CREATE_MESSAGE, DELETE_MESSAGE, GET_MESSAGES, UPDATE_MESSAGE } from '../graphql/messages';
 import useInfiniteScroll from '../hooks/useInfiniteScroll';
 
@@ -20,7 +20,7 @@ const MsgList = ({ smsgs }) => {
   const { mutate: onCreate } = useMutation(({ text }) => fetcher(CREATE_MESSAGE, { text, userId }), {
     onSuccess: ({ createMessage }) => {
       // pages : [{ messages: [createMessage, 15] }, { messages: [15] }, { messages: [10] }]
-      client.setQueryData(QueryKeys.MESSAGES, (old) => {
+      client.setQueryData([QueryKeys.MESSAGES], (old) => {
         return {
           pageParam: old.pageParam,
           pages: [{ messages: [createMessage, ...old.pages[0].messages] }, ...old.pages.slice(1)],
@@ -32,7 +32,7 @@ const MsgList = ({ smsgs }) => {
   const { mutate: onUpdate } = useMutation(({ text, id }) => fetcher(UPDATE_MESSAGE, { text, id, userId }), {
     onSuccess: ({ updateMessage }) => {
       doneEdit();
-      client.setQueryData(QueryKeys.MESSAGES, (old) => {
+      client.setQueryData([QueryKeys.MESSAGES], (old) => {
         const { pageIndex, msgIndex } = findTargetMsgIndex(old.pages, updateMessage.id);
         if (pageIndex < 0 || msgIndex < 0) return old;
         const newMsgs = getNewMessages(old);
@@ -44,7 +44,7 @@ const MsgList = ({ smsgs }) => {
 
   const { mutate: onDelete } = useMutation((id) => fetcher(DELETE_MESSAGE, { id, userId }), {
     onSuccess: ({ deleteMessage: deletedId }) => {
-      client.setQueryData(QueryKeys.MESSAGES, (old) => {
+      client.setQueryData([QueryKeys.MESSAGES], (old) => {
         const { pageIndex, msgIndex } = findTargetMsgIndex(old.pages, deletedId);
         if (pageIndex < 0 || msgIndex < 0) return old;
         const newMsgs = getNewMessages(old);
@@ -57,7 +57,7 @@ const MsgList = ({ smsgs }) => {
   const doneEdit = () => setEditingId(null);
 
   const { data, error, isError, fetchNextPage, hasNextPage } = useInfiniteQuery(
-    QueryKeys.MESSAGES,
+    [QueryKeys.MESSAGES],
     ({ queryKey, pageParam = '' }) => fetcher(GET_MESSAGES, { cursor: pageParam }),
     {
       getNextPageParam: ({ messages }) => {

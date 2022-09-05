@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { Hydrate, QueryClient, QueryClientProvider } from 'react-query';
+import { Hydrate, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import './index.scss';
 
 const App = ({ Component, pageProps }) => {
